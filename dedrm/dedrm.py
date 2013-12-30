@@ -25,11 +25,19 @@ def freeBooks(kindle, storage):
   print "Free BOOKS!"
   serial = raw_input("Kindle Serial Number: ") #B02415022487114Q
   kindle_path = kindle.mount_paths[0]
+  storage_path = storage.mount_paths[0]
+  path_to_freedom = storage_path+"/freed_books"
   books = os.listdir (kindle_path+"/documents")
+  try:
+    os.mkdir(path_to_freedom)
+  except OSError:
+    pass
   for book in books:
     if book.endswith(".azw3") or book.endswith(".mobi"):
       print book
-      decryptBook(kindle_path+"/documents/"+book, "./freed_books", [], [serial], [])
+      decryptBook(kindle_path+"/documents/"+book, path_to_freedom, [], [serial], [])
+      # fetch DrmException
+  storage.unmount()
 
   
 
@@ -51,7 +59,7 @@ class MountListener(object):
         else:
           print "ITS NOT A KINDLE"
           self.storage = device
-    if self.kindle is not None:# and self.storage is not None:
+    if self.kindle is not None and self.storage is not None:
       freeBooks(self.kindle, self.storage)
     else:
       print "not enough devices"
@@ -82,9 +90,6 @@ mounter = udiskie.mount.Mounter(udisks=udisks)
 # automounter
 automount = udiskie.automount.AutoMounter(mounter)
 listener = MountListener()
-daemon.connect(listener)
-daemon.connect(automount)
-
 import udiskie.notify
 try:
     import notify2 as notify_service
@@ -93,6 +98,10 @@ except ImportError:
 notify_service.init('udiskie.mount')
 notify = udiskie.notify.Notify(notify_service)
 daemon.connect(notify)
+daemon.connect(automount)
+daemon.connect(listener)
+
+
 
 #mounter.mount_all()
 try:
